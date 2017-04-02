@@ -15,42 +15,25 @@ end
 
 function letters:init()
   self.lines = {{}}
-  self.cursor = 1
   self.length = 0
 end
 
--- Move cursor forward.
-function letters:forward()
-  self.cursor = math.min(self.cursor + 1, self.length + 1)
-end
-
--- Move cursor backward.
-function letters:backward()
-  self.cursor = math.max(self.cursor - 1, 1)
-end
-
--- Return current cursor position.
-function letters:getCursor()
-  return self.cursor
-end
-
--- Set cursor position clamped to 1 to line buffer length + 1.
-function letters:setCursor(cursor)
-  self.cursor = math.max(1, math.min(cursor, self.length + 1))
+function letters:getLength()
+  return self.length
 end
 
 -- Add character to buffer at cursor position.
-function letters:insert(ch)
-  local col, line = self:cursorToColRow(self.cursor)
+function letters:insert(ch, idx)
+  local col, line = self:colLine(idx)
   table.insert(self.lines[line], col, ch)
   self.length = self.length + 1
   return col, line
 end
 
 -- Remove character from buffer at cursor position.
-function letters:remove()
+function letters:remove(idx)
   if self.length > 0 then
-    local col, line = self:cursorToColRow(self.cursor)
+    local col, line = self:colLine(idx)
     self.length = self.length - 1
     return table.remove(self.lines[line], col)
   end
@@ -58,7 +41,7 @@ function letters:remove()
 end
 
 -- Gets the position (col, line) of a given buffer index.
-function letters:cursorToColRow(idx)
+function letters:colLine(idx)
   if idx < 0 then
     error("index cannot be less than 0.")
   end
@@ -78,8 +61,8 @@ function letters:cursorToColRow(idx)
   return #self.lines[#self.lines] + 1, #self.lines
 end
 
--- Convert column and row into cursor position.
-function letters:colRowToCursor(col, line)
+-- Convert column and row into index position.
+function letters:index(col, line)
   if col < 0 or line < 0 then
     error("column and line must be non-negative.")
   end
@@ -118,8 +101,8 @@ function letters:select(startCursor, endCursor)
   if startCursor > endCursor then
     startCursor, endCursor = endCursor, startCursor
   end
-  local startCol, startRow = self:cursorToColRow(startCursor)
-  local endCol, endRow = self:cursorToColRow(endCursor)
+  local startCol, startRow = self:colLine(startCursor)
+  local endCol, endRow = self:colLine(endCursor)
   local selected = {}
 
   -- Just get single line fragment.
