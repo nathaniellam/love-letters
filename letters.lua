@@ -26,7 +26,7 @@ end
 
 -- Move cursor backward.
 function letters:backward()
-  self.cursor = math.max(self.cursor - 1, (self._prefix and 2) or 1)
+  self.cursor = math.max(self.cursor - 1, 1)
 end
 
 -- Return current cursor position.
@@ -55,34 +55,6 @@ function letters:remove()
     return table.remove(self.lines[line], col)
   end
   return nil
-end
-
--- Gets prefix if it exists.
-function letters:getPrefix()
-  if self._prefix then
-    return self.lines[1][1]
-  else
-    return nil
-  end
-end
-
--- Sets new prefix which overwrites current one.
-function letters:setPrefix(prefix)
-  if self._prefix then
-    table.remove(self.lines[1], 1)
-    self.length = self.length - 1
-  end
-
-  if prefix then
-    self._prefix = true
-    table.insert(self.lines[1], 1, prefix)
-    if self.cursor == 1 then
-      self.cursor = 2
-    end
-    self.length = self.length + 1
-  else
-    self._prefix = false
-  end
 end
 
 -- Gets the position (col, line) of a given buffer index.
@@ -184,3 +156,45 @@ function letters:select(startCursor, endCursor)
 
   return selected
 end
+
+-- Format lines to fit max width.
+function letters:format(font, maxWidth, init)
+  init = init or 1
+  for i = init, #self.lines do
+    local line = self.lines[i]
+    local nextLine = self.lines[i + 1]
+
+    local initialWidth = font:getWidth(table.concat(line))
+    -- Overflow: give characters to next line.
+    if initialWidth > maxWidth then
+      -- Insert new line
+      if not nextLine then
+        nextLine = {}
+        table.insert(self.lines, nextLine)
+      end
+
+      repeat
+        table.insert(nextLine, 1, table.remove(line))
+      until font:getWidth(table.concat(line)) < maxWidth
+    -- Underflow: take characters from next line.
+    elseif initialWidth < maxWidth and nextLine then
+      repeat
+        table.insert(line, table.remove(nextLine, 1))
+      until font:getWidth(table.concat(line)) > maxWidth or #nextLine == 0
+
+      -- Remove overflowing character.
+      if font:getWidth(table.concat(line)) > maxWidth then
+        table.insert(nextLine, 1, table.remove(line))
+      end
+    end
+  end
+
+  if #self.lines > 1 then
+    -- Remove empty last line.
+    if #self.lines[#self.lines] == 0 then
+      table.remove(self.lines)
+    end
+  end
+end
+
+return letters
