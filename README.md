@@ -1,2 +1,2 @@
 # love-letters
-Advanced text input for LÖVE.
+Simple multi-line character buffer for LÖVE.
